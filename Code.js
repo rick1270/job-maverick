@@ -1,5 +1,5 @@
 /***************
- * Sales Engineer Job Search Assistant
+ * Job Maverick — Job Search Assistant
  *
  * Tabs:
  * - Jobs
@@ -4221,7 +4221,56 @@ function seedGenericConfigDefaults() {
 
 // Entry point for a friend's first run: seeds the generic methodology rows (idempotent, safe
 // to have already run) then opens the personal-info wizard.
+// A fresh copy of this template (via File > Make a Copy, or `clasp create-script --type
+// sheets`) is a genuinely blank spreadsheet — Jobs/Input/Config don't exist yet. Every other
+// function in this file assumes they already do (getSheetByName(...) returning null just
+// throws/alerts "Missing tab: ..."), so this has to run before anything else can work. Safe
+// to re-run: only creates a tab if it's actually missing, never touches an existing one.
+function initializeJobMaverickWorkbook() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  let configSheet = ss.getSheetByName(CONFIG_SHEET_NAME);
+  if (!configSheet) {
+    configSheet = ss.insertSheet(CONFIG_SHEET_NAME);
+    configSheet.getRange(1, 1, 1, 2).setValues([["Key", "Value"]]);
+    configSheet.setFrozenRows(1);
+  }
+
+  let inputSheet = ss.getSheetByName(INPUT_SHEET_NAME);
+  if (!inputSheet) {
+    inputSheet = ss.insertSheet(INPUT_SHEET_NAME);
+    inputSheet.getRange(1, 1, 1, 3).setValues([["Job Link", "Job Description", "Ready to Analyze"]]);
+    inputSheet.getRange("C2").insertCheckboxes();
+    inputSheet.setFrozenRows(1);
+  }
+
+  let jobsSheet = ss.getSheetByName(JOBS_SHEET_NAME);
+  if (!jobsSheet) {
+    jobsSheet = ss.insertSheet(JOBS_SHEET_NAME);
+    const headers = [
+      "ID", "Company", "Role", "Job Link", "Job Description", "Calibration Note", "Email Domain",
+      "Fit Score", "ATS Score (Base / Tailored)", "Response Probability (Proj / Final)",
+      "Compensation Fit", "Stability", "Recommendation", "Status", "Referral / Contact", "Notes",
+      "Resume Tailoring Notes", "Cover Letter Draft", "Tailored Resume Draft", "Proof Notes",
+      "Next Step", "Next Step Due Date", "Industry Type", "Sector", "Last Updated",
+      "Response Date", "Auto Response", "ATS / Platform"
+    ];
+    // Row 1-2 reserved for an optional metrics dashboard (see insertMetricsDashboardRow()) —
+    // JOBS_HEADER_ROW is hardcoded to 3, so headers go there regardless of whether a dashboard
+    // is ever added.
+    jobsSheet.getRange(JOBS_HEADER_ROW, 1, 1, headers.length).setValues([headers]);
+    jobsSheet.setFrozenRows(JOBS_HEADER_ROW);
+  }
+
+  // clasp create-script leaves a default "Sheet1" behind — remove it once real tabs exist.
+  const defaultSheet = ss.getSheetByName("Sheet1");
+  if (defaultSheet && ss.getSheets().length > 1) {
+    ss.deleteSheet(defaultSheet);
+  }
+}
+
 function showSetupWizard() {
+  initializeJobMaverickWorkbook();
   seedGenericConfigDefaults();
 
   const html = HtmlService.createHtmlOutputFromFile("setup_wizard")

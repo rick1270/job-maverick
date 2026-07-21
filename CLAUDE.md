@@ -44,6 +44,8 @@ This master copy is **Rick's own template instance** — he maintains it via cla
 
 Same as `life_job`: edit `Code.js` locally, `clasp push`, test manually via the sheet, commit + push to GitHub. No production web-app deployment step is required for menu-triggered functions; only the bookmarklet's `doGet` path needs an actual **Deploy > New deployment** in the Apps Script editor (each friend does this once, themselves, for their own copy — see SETUP_GUIDE.md).
 
+**Unlike `life_job`, this project's Jobs/Input/Config tabs don't exist until first created.** `life_job` was always a long-lived spreadsheet that already had these tabs; a fresh copy of this template (via `clasp create-script` or File > Make a Copy) is genuinely blank. `initializeJobMaverickWorkbook()` creates all three with correct headers — it's called automatically by `showSetupWizard()`, so this should never need to run manually, but it's idempotent (only creates a tab if missing) if you ever need to re-run it directly from the Apps Script editor.
+
 ---
 
 ## Porting changes between `life_job` and `job_maverick`
