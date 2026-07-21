@@ -3,6 +3,28 @@
 Everything below happens in your browser — Google Sheets and the Apps Script editor (which
 opens inside Google, not a separate program). No installs, no command line.
 
+(This same content also lives as a formatted **Instructions** tab inside the sheet itself —
+that's what a friend will actually see; this file is a source/reference copy.)
+
+## What this tool does
+
+- One-click job capture — a browser bookmarklet grabs the job description from any posting
+  (LinkedIn, company career pages, etc.) and sends it straight to your tracker.
+- Automatic scoring — every captured job gets a Fit Score, ATS Score, Response Probability, and
+  a Recommendation (Apply / Discuss / Apply if Easy / Skip), all driven by rules you control in
+  the Config tab.
+- Tailored resumes and cover letters — generates a version of your resume and a cover letter
+  matched to each specific job description, with keyword and ATS-aware editing.
+- Interview prep sheets — a study sheet per interview: likely questions, talking points pulled
+  from your real resume, a terms/technology glossary, and gaps to watch for.
+- Email monitoring — automatically checks your inbox for application responses (confirmations,
+  rejections, interview requests, offers) and updates your tracker, no manual entry needed.
+- Auto-sorting — your job list re-sorts by priority as things change.
+- Fully customizable scoring — the Config tab is plain-English instructions, not code; edit any
+  rule any time.
+- Built-in help — a Claude Chat sidebar for questions, and a feedback tool to report bugs or
+  suggest features directly to the developer.
+
 ## What you'll need
 
 - A Google account with Google Sheets.
@@ -82,7 +104,13 @@ requests) and updates your tracker automatically.
   Config with a short label and plain-English instruction — it's picked up automatically on the
   next analysis.
 
+## Have a question, found a bug, or have an idea?
+
+**Job Assistant → Open Claude Chat** for questions about how the tracker works. **Job Assistant
+→ Send Feedback** to report a bug or suggest a feature — it goes straight to the developer's
+inbox.
+
 ## If something breaks
 
 Check **Extensions → Apps Script → Executions** (left sidebar) for an error log of the most
-recent runs. If you're stuck, reach out to whoever shared this template with you.
+recent runs.

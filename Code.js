@@ -190,6 +190,7 @@ function onOpen() {
     .addItem("Check for New Claude Models", "checkForNewClaudeModelsInteractive")
     .addSeparator()
     .addItem("Open Claude Chat", "openClaudeSidebar")
+    .addItem("Send Feedback", "showFeedbackDialog")
     .addToUi();
 }
 
@@ -4298,6 +4299,9 @@ function createInstructionsSheet() {
     { type: "title", text: "Job Maverick — Setup & Usage" },
     { type: "body", text: "Everything below happens in your browser — Google Sheets and the Apps Script editor (which opens inside Google, not a separate program). No installs, no command line." },
     { type: "spacer" },
+    { type: "heading", text: "What this tool does" },
+    { type: "body", text: "• One-click job capture — a browser bookmarklet grabs the job description from any posting (LinkedIn, company career pages, etc.) and sends it straight to your tracker.\n• Automatic scoring — every captured job gets a Fit Score, ATS Score, Response Probability, and a Recommendation (Apply / Discuss / Apply if Easy / Skip), all driven by rules you control in the Config tab.\n• Tailored resumes and cover letters — generates a version of your resume and a cover letter matched to each specific job description, with keyword and ATS-aware editing.\n• Interview prep sheets — a study sheet per interview: likely questions, talking points pulled from your real resume, a terms/technology glossary, and gaps to watch for.\n• Email monitoring — automatically checks your inbox for application responses (confirmations, rejections, interview requests, offers) and updates your tracker, no manual entry needed.\n• Auto-sorting — your job list re-sorts by priority (interview requests first, then by fit/response likelihood) as things change.\n• Fully customizable scoring — the Config tab is plain-English instructions, not code; edit any rule any time.\n• Built-in help — a Claude Chat sidebar for questions, and a feedback tool to report bugs or suggest features directly to the developer." },
+    { type: "spacer" },
     { type: "heading", text: "What you'll need" },
     { type: "body", text: "• A Google account with Google Sheets.\n• A Claude API key from console.anthropic.com (Plans & Billing > API keys). This is pay-as-you-go — typical job-search usage costs a few dollars a month, not a subscription.\n• Your resume as a Google Doc (not a PDF/Word file — if you have a PDF, open it in Google Docs first: File > Open > Upload, or paste the text into a new Doc)." },
     { type: "spacer" },
@@ -4320,7 +4324,7 @@ function createInstructionsSheet() {
     { type: "body", text: "• Click your bookmarklet on job postings you find.\n• Check the Jobs tab — new rows appear scored (Fit Score, ATS Score, Recommendation) within about 30 seconds of capture.\n• Use the Job Assistant menu for everything else: generating tailored resumes/cover letters, interview prep, sorting, checking email responses.\n• The Config tab is your scoring rulebook — edit any row any time to change how Claude scores or writes for you. Add a new row with a short label and a plain-English instruction to add your own rule; it's picked up automatically on the next analysis." },
     { type: "spacer" },
     { type: "heading", text: "Have a question? Just ask." },
-    { type: "body", text: "Job Assistant > Open Claude Chat opens a chat sidebar right in this sheet — ask it anything about how the tracker works, why a job scored the way it did, or how to change a Config rule. It's the fastest way to get unstuck, any time." },
+    { type: "body", text: "Job Assistant > Open Claude Chat opens a chat sidebar right in this sheet — ask it anything about how the tracker works, why a job scored the way it did, or how to change a Config rule. It's the fastest way to get unstuck, any time.\nFound a bug, or have an idea to make this better? Job Assistant > Send Feedback goes straight to the developer's inbox." },
     { type: "spacer" },
     { type: "heading", text: "If something breaks" },
     { type: "body", text: "Check Extensions > Apps Script > Executions (left sidebar) for an error log of the most recent runs. You can also ask Job Assistant > Open Claude Chat, or reach out to whoever shared this template with you." }
@@ -4347,6 +4351,62 @@ function createInstructionsSheet() {
   ss.setActiveSheet(sheet);
 
   SpreadsheetApp.getActiveSpreadsheet().toast("Instructions tab created/refreshed.", "Job Assistant", 8);
+}
+
+// ---- Feedback: friends' bug reports/suggestions, emailed straight to the developer ----
+
+const FEEDBACK_SHEET_NAME = "Bugs & Suggestions";
+const DEVELOPER_FEEDBACK_EMAIL = "Richard.A.Clayton.Jr@gmail.com";
+
+function getOrCreateFeedbackSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(FEEDBACK_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(FEEDBACK_SHEET_NAME);
+    sheet.getRange(1, 1, 1, 4).setValues([["Date", "Type", "Description", "Status"]]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function showFeedbackDialog() {
+  const html = HtmlService.createHtmlOutputFromFile("feedback_dialog").setWidth(420).setHeight(340);
+  SpreadsheetApp.getUi().showModalDialog(html, "Send Feedback");
+}
+
+// Logs locally (so the user has their own record) AND emails the developer immediately —
+// each user's copy is a fully independent spreadsheet with no automatic sync back to Rick, so
+// email is the only way feedback actually reaches him rather than sitting unseen in someone's
+// own tab. DEVELOPER_FEEDBACK_EMAIL is a deliberate exception to "no hardcoded personal data":
+// it's the maintainer's own support contact, not job-seeker data, and has to be a fixed
+// destination for this to work at all.
+function submitFeedback(type, description) {
+  const text = String(description || "").trim();
+  if (!text) throw new Error("Please enter a description before sending.");
+
+  const sheet = getOrCreateFeedbackSheet();
+  const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "M/d/yyyy");
+  sheet.appendRow([today, type || "Suggestion", text, "Sent"]);
+
+  const config = getConfigForRuntime();
+  const senderName = config["User Display Name"] || config["User Full Name"] || "";
+  const senderEmail = Session.getEffectiveUser().getEmail() || config["User Email"] || "";
+  const sheetUrl = SpreadsheetApp.getActiveSpreadsheet().getUrl();
+
+  try {
+    MailApp.sendEmail(
+      DEVELOPER_FEEDBACK_EMAIL,
+      "Job Maverick feedback (" + (type || "Suggestion") + ")" + (senderName ? " from " + senderName : ""),
+      "Type: " + (type || "Suggestion") + "\n" +
+      "From: " + (senderName || "Unknown") + (senderEmail ? " <" + senderEmail + ">" : "") + "\n" +
+      "Sheet: " + sheetUrl + "\n\n" +
+      text
+    );
+  } catch (e) {
+    console.warn("Could not send feedback email: " + e.message);
+  }
+
+  return true;
 }
 
 function viewInstructions() {
@@ -5554,6 +5614,51 @@ function setConfigValue(sheet, key, value) {
   } else {
     sheet.appendRow([key, value]);
   }
+}
+
+// Maintenance-only, for Rick's own master template — not something a friend would ever need
+// to run. Removes every Config row the Setup Wizard writes (leaving the generic seeded rows
+// from seedGenericConfigDefaults untouched) and clears CLAUDE_API_KEY/WEBHOOK_TOKEN, so a
+// test run of the wizard doesn't leave placeholder data sitting in what gets shared/copied.
+// Run directly from the Apps Script editor's function dropdown.
+function resetSetupWizardData() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_SHEET_NAME);
+  if (!sheet) {
+    SpreadsheetApp.getUi().alert("Missing tab: Config");
+    return;
+  }
+
+  const wizardKeys = [
+    "User Full Name", "User Display Name", "User Email", "User Phone", "User Location",
+    "User LinkedIn", "Base Resume URL", "Application Docs Folder",
+    "Primary role target", "Secondary role targets", "Industries / sectors",
+    "High Fit Score earns", "User Background",
+    "Remote preference", "Hybrid preference", "Onsite", "Travel preference",
+    "Job-search constraint", "Compensation target",
+    "Compensation Fit Weak", "Compensation Fit Good", "Compensation Fit Strong", "Compensation Fit Unknown"
+  ];
+
+  const lastRow = sheet.getLastRow();
+  const keys = lastRow > 0
+    ? sheet.getRange(1, 1, lastRow, 1).getValues().map(function(r) { return String(r[0]).trim(); })
+    : [];
+
+  let removed = 0;
+  for (let i = keys.length - 1; i >= 0; i--) {
+    if (wizardKeys.indexOf(keys[i]) !== -1) {
+      sheet.deleteRow(i + 1);
+      removed++;
+    }
+  }
+
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty("CLAUDE_API_KEY");
+  props.deleteProperty("WEBHOOK_TOKEN");
+
+  SpreadsheetApp.getActiveSpreadsheet().toast(
+    "Cleared " + removed + " Setup Wizard Config row(s), plus the Claude API key and webhook token.",
+    "Job Assistant", 10
+  );
 }
 
 // Weekly background check (see installNewModelCheckTrigger): diffs the live Models API

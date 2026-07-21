@@ -23,7 +23,8 @@ dev-facing architecture/maintenance notes (Rick's own reference).
 - **New**: Setup Wizard (`Job Assistant → Setup Wizard`) collects personal info, resume/docs links, target role, background, and preferences, and writes them into Config — no manual Config editing required to get started.
 - **New**: `seedGenericConfigDefaults()` seeds ~65 generic scoring/formatting Config rows (methodology only, no personal data) — same idempotent pattern as `life_job`'s other Config seed functions.
 - **New**: `Job Assistant → Get Bookmarklet` generates a ready-to-drag bookmarklet using the copy's own deployment URL and webhook token — no manual file editing or minification needed.
-- **New**: In-sheet **Instructions** tab (`Job Assistant → View Instructions`) — the first tab a friend sees, with the full setup/usage guide and a pointer to `Open Claude Chat` for questions. Travels automatically with every File > Make a Copy.
+- **New**: In-sheet **Instructions** tab (`Job Assistant → View Instructions`) — the first tab a friend sees, with a feature list, full setup/usage guide, and pointers to Claude Chat and Send Feedback. Travels automatically with every File > Make a Copy.
+- **New**: **Send Feedback** (`Job Assistant → Send Feedback`) — logs to a Bugs & Suggestions tab and emails the developer directly, since each user's copy is independent with no automatic sync back.
 
 ### Known Differences from `life_job`
 - No calibration examples pre-seeded (Calibration Summary starts blank — same starting point `life_job` effectively had before Rick's own calibration history accumulated).

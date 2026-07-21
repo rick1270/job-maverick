@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; padding: 12px; margin: 0; color: #333; }
+    p.hint { font-size: 11px; color: #666; margin: 0 0 12px; }
+    label { display: block; margin-top: 10px; font-weight: bold; font-size: 12px; }
+    select, textarea {
+      width: 100%; box-sizing: border-box; margin-top: 4px; font-size: 12px;
+      border: 1px solid #ccc; border-radius: 3px; padding: 6px; font-family: inherit;
+    }
+    textarea { height: 110px; resize: vertical; }
+    .buttons { margin-top: 16px; text-align: right; }
+    button { padding: 8px 16px; cursor: pointer; border-radius: 4px; font-size: 13px; }
+    #send-btn { background: #1a73e8; color: white; border: none; }
+    #close-btn { background: white; border: 1px solid #ccc; margin-left: 8px; }
+    #status { margin-top: 10px; font-size: 12px; color: #188038; text-align: right; }
+    #error { margin-top: 10px; font-size: 12px; color: #c5221f; text-align: right; }
+  </style>
+</head>
+<body>
+  <p class="hint">Found a bug or have an idea? This goes straight to the developer's inbox — no need to track them down elsewhere.</p>
+
+  <label>Type</label>
+  <select id="type">
+    <option value="Bug">Bug</option>
+    <option value="Suggestion">Suggestion</option>
+  </select>
+
+  <label>What's going on?</label>
+  <textarea id="description" placeholder="Be as specific as you can — what you did, what you expected, what happened instead."></textarea>
+
+  <div class="buttons">
+    <button id="send-btn" onclick="send()">Send</button>
+    <button id="close-btn" onclick="google.script.host.close()">Cancel</button>
+  </div>
+  <div id="status"></div>
+  <div id="error"></div>
+
+  <script>
+    function send() {
+      const type = document.getElementById('type').value;
+      const description = document.getElementById('description').value.trim();
+
+      document.getElementById('status').textContent = 'Sending…';
+      document.getElementById('error').textContent = '';
+
+      google.script.run
+        .withSuccessHandler(function() {
+          document.getElementById('status').textContent = 'Sent — thank you!';
+          setTimeout(function() { google.script.host.close(); }, 1200);
+        })
+        .withFailureHandler(function(e) {
+          document.getElementById('status').textContent = '';
+          document.getElementById('error').textContent = 'Error: ' + e.message;
+        })
+        .submitFeedback(type, description);
+    }
+  </script>
+</body>
+</html>
