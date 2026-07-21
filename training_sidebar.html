@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; padding: 12px; margin: 0; }
+    .row-info { background: #f1f3f4; padding: 8px 10px; border-radius: 4px; margin-bottom: 14px; font-size: 12px; color: #333; font-weight: bold; word-break: break-word; }
+    label { display: block; margin-top: 12px; font-weight: bold; color: #333; }
+    textarea { width: 100%; box-sizing: border-box; height: 85px; margin-top: 4px; font-size: 12px; border: 1px solid #ccc; border-radius: 3px; padding: 6px; resize: vertical; }
+    .buttons { margin-top: 16px; }
+    button { padding: 8px 16px; cursor: pointer; border-radius: 4px; font-size: 13px; }
+    #save-btn { background: #1a73e8; color: white; border: none; }
+    #cancel-btn { background: white; border: 1px solid #ccc; margin-left: 8px; }
+    #status { margin-top: 10px; font-size: 12px; color: #188038; }
+    #error  { margin-top: 10px; font-size: 12px; color: #c5221f; }
+  </style>
+</head>
+<body>
+  <div class="row-info" id="row-label"></div>
+
+  <label>Letter Changes</label>
+  <textarea id="letter" placeholder="What did you change in the cover letter and why?"></textarea>
+
+  <label>Resume Changes</label>
+  <textarea id="resume" placeholder="What did you change in the resume and why?"></textarea>
+
+  <label>Proof Notes</label>
+  <textarea id="proof"></textarea>
+
+  <div class="buttons">
+    <button id="save-btn" onclick="save()">Save to Training</button>
+    <button id="cancel-btn" onclick="google.script.host.close()">Skip</button>
+  </div>
+  <div id="status"></div>
+  <div id="error"></div>
+
+  <script>
+    const rowInfo = <?!= JSON.stringify({id: id, company: company, role: role, proofContent: proofContent}) ?>;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const parts = [rowInfo.id, rowInfo.company, rowInfo.role].filter(Boolean);
+      document.getElementById('row-label').textContent = parts.join(' — ');
+      document.getElementById('proof').value = rowInfo.proofContent || '';
+    });
+
+    function save() {
+      const letter = document.getElementById('letter').value.trim();
+      const resume = document.getElementById('resume').value.trim();
+      const proof  = document.getElementById('proof').value.trim();
+      document.getElementById('status').textContent = 'Saving…';
+      document.getElementById('error').textContent  = '';
+      google.script.run
+        .withSuccessHandler(function() {
+          document.getElementById('status').textContent = 'Saved to Training tab.';
+          setTimeout(function() { google.script.host.close(); }, 1000);
+        })
+        .withFailureHandler(function(e) {
+          document.getElementById('status').textContent = '';
+          document.getElementById('error').textContent  = 'Error: ' + e.message;
+        })
+        .saveTrainingRow(rowInfo.id, rowInfo.company, rowInfo.role, letter, resume, proof);
+    }
+  </script>
+</body>
+</html>

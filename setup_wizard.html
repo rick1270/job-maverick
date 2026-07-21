@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; padding: 12px; margin: 0; color: #333; }
+    h2 { font-size: 14px; margin: 18px 0 6px; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; }
+    h2:first-child { margin-top: 0; }
+    p.hint { font-size: 11px; color: #666; margin: 2px 0 8px; }
+    label { display: block; margin-top: 10px; font-weight: bold; font-size: 12px; }
+    input[type=text], input[type=email], textarea {
+      width: 100%; box-sizing: border-box; margin-top: 3px; font-size: 12px;
+      border: 1px solid #ccc; border-radius: 3px; padding: 6px; font-family: inherit;
+    }
+    textarea { height: 60px; resize: vertical; }
+    .two-col { display: flex; gap: 8px; }
+    .two-col > div { flex: 1; }
+    .buttons { margin-top: 18px; text-align: right; }
+    button { padding: 9px 18px; cursor: pointer; border-radius: 4px; font-size: 13px; }
+    #save-btn { background: #1a73e8; color: white; border: none; }
+    #close-btn { background: white; border: 1px solid #ccc; margin-left: 8px; }
+    #status { margin-top: 10px; font-size: 12px; color: #188038; text-align: right; }
+    #error { margin-top: 10px; font-size: 12px; color: #c5221f; text-align: right; }
+    .done-box { display: none; background: #f1f3f4; border-radius: 4px; padding: 10px; margin-top: 14px; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <h2>Personal Info</h2>
+  <label>Full Name</label>
+  <input type="text" id="fullName" placeholder="e.g. Jamie A. Rivera">
+  <label>Display Name / Nickname</label>
+  <p class="hint">Used when Claude addresses you directly, e.g. in cover letters and interview prep.</p>
+  <input type="text" id="displayName" placeholder="e.g. Jamie">
+  <div class="two-col">
+    <div>
+      <label>Email</label>
+      <input type="email" id="email" placeholder="you@example.com">
+    </div>
+    <div>
+      <label>Phone</label>
+      <input type="text" id="phone" placeholder="555-123-4567">
+    </div>
+  </div>
+  <div class="two-col">
+    <div>
+      <label>Location</label>
+      <input type="text" id="location" placeholder="City, ST">
+    </div>
+    <div>
+      <label>LinkedIn</label>
+      <input type="text" id="linkedin" placeholder="linkedin.com/in/you">
+    </div>
+  </div>
+
+  <h2>Resume &amp; Docs</h2>
+  <label>Base Resume (Google Doc link)</label>
+  <p class="hint">Open your resume in Google Docs, click Share, copy the link.</p>
+  <input type="text" id="resumeUrl" placeholder="https://docs.google.com/document/d/...">
+  <label>Application Docs Folder (Google Drive link)</label>
+  <p class="hint">A Drive folder where tailored resumes/cover letters get saved. Create an empty folder, open it, copy the link.</p>
+  <input type="text" id="docsFolderUrl" placeholder="https://drive.google.com/drive/folders/...">
+
+  <h2>Target Role</h2>
+  <label>Primary role you're targeting</label>
+  <input type="text" id="primaryRole" placeholder="e.g. Product Manager">
+  <label>Other roles you'd consider</label>
+  <input type="text" id="secondaryRoles" placeholder="e.g. Program Manager, Product Marketing">
+  <label>Target industries / sectors</label>
+  <input type="text" id="industries" placeholder="e.g. SaaS, Fintech, Healthcare Tech">
+  <label>What makes a job a great fit for you?</label>
+  <p class="hint">The combination of role, industry, and traits that would earn a high Fit Score — used to calibrate scoring.</p>
+  <textarea id="highFitEarns" placeholder="e.g. Remote PM role at a Series B+ SaaS company, $150k+, owning a core product area"></textarea>
+
+  <h2>Background</h2>
+  <label>Tell us about your background</label>
+  <p class="hint">2-4 sentences: current/recent roles, key skills, notable achievements, what you're pursuing next. This becomes your resume's context for every job analysis.</p>
+  <textarea id="background" style="height: 90px"></textarea>
+
+  <h2>Preferences</h2>
+  <div class="two-col">
+    <div>
+      <label>Remote</label>
+      <input type="text" id="remotePref" placeholder="e.g. Remote preferred">
+    </div>
+    <div>
+      <label>Hybrid</label>
+      <input type="text" id="hybridPref" placeholder="e.g. Fine for the right role">
+    </div>
+  </div>
+  <div class="two-col">
+    <div>
+      <label>Onsite</label>
+      <input type="text" id="onsitePref" placeholder="e.g. Only exceptional cases">
+    </div>
+    <div>
+      <label>Travel</label>
+      <input type="text" id="travelPref" placeholder="e.g. Up to 25% acceptable">
+    </div>
+  </div>
+  <div class="two-col">
+    <div>
+      <label>Minimum acceptable compensation</label>
+      <input type="text" id="minComp" placeholder="e.g. $120k">
+    </div>
+    <div>
+      <label>Preferred/target compensation</label>
+      <input type="text" id="targetComp" placeholder="e.g. $150k+">
+    </div>
+  </div>
+  <label>Any job-search constraints? (optional)</label>
+  <input type="text" id="jobSearchConstraint" placeholder="e.g. don't want my current employer to find out">
+
+  <h2>Claude API Key</h2>
+  <p class="hint">From console.anthropic.com — stored in Script Properties, never written to the sheet.</p>
+  <input type="text" id="apiKey" placeholder="sk-ant-...">
+
+  <div class="buttons">
+    <button id="save-btn" onclick="save()">Save Setup</button>
+    <button id="close-btn" onclick="google.script.host.close()">Close</button>
+  </div>
+  <div id="status"></div>
+  <div id="error"></div>
+
+  <div class="done-box" id="done-box">
+    Setup saved. Next: Job Assistant → <strong>Get Bookmarklet</strong> to install your job-capture bookmarklet
+    (you'll need to deploy this script as a web app first if you haven't — Extensions &gt; Apps Script &gt; Deploy &gt; New deployment).
+  </div>
+
+  <script>
+    function save() {
+      const data = {
+        fullName: val('fullName'), displayName: val('displayName'), email: val('email'),
+        phone: val('phone'), location: val('location'), linkedin: val('linkedin'),
+        resumeUrl: val('resumeUrl'), docsFolderUrl: val('docsFolderUrl'),
+        primaryRole: val('primaryRole'), secondaryRoles: val('secondaryRoles'),
+        industries: val('industries'), highFitEarns: val('highFitEarns'),
+        background: val('background'),
+        remotePref: val('remotePref'), hybridPref: val('hybridPref'),
+        onsitePref: val('onsitePref'), travelPref: val('travelPref'),
+        minComp: val('minComp'), targetComp: val('targetComp'),
+        jobSearchConstraint: val('jobSearchConstraint'),
+        apiKey: val('apiKey')
+      };
+
+      document.getElementById('status').textContent = 'Saving…';
+      document.getElementById('error').textContent = '';
+
+      google.script.run
+        .withSuccessHandler(function() {
+          document.getElementById('status').textContent = 'Saved.';
+          document.getElementById('done-box').style.display = 'block';
+        })
+        .withFailureHandler(function(e) {
+          document.getElementById('status').textContent = '';
+          document.getElementById('error').textContent = 'Error: ' + e.message;
+        })
+        .saveSetupWizardAnswers(data);
+    }
+
+    function val(id) {
+      return document.getElementById(id).value.trim();
+    }
+  </script>
+</body>
+</html>
