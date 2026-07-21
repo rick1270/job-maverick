@@ -173,6 +173,7 @@ function logActivityChange(jobId, company, role, fieldName, fromValue, toValue) 
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("Job Assistant")
+    .addItem("View Instructions", "viewInstructions")
     .addItem("Setup Wizard", "showSetupWizard")
     .addItem("Get Bookmarklet", "showBookmarkletDialog")
     .addItem("Set Claude API Key", "setClaudeApiKey")
@@ -4266,6 +4267,95 @@ function initializeJobMaverickWorkbook() {
   const defaultSheet = ss.getSheetByName("Sheet1");
   if (defaultSheet && ss.getSheets().length > 1) {
     ss.deleteSheet(defaultSheet);
+  }
+
+  // Defensive fallback for a copy that didn't come from File > Make a Copy on the master
+  // template (which already carries this tab) — e.g. a fresh clasp create-script instance.
+  // Never overwrites an existing tab, so a friend's own edits to their copy are untouched.
+  if (!ss.getSheetByName(INSTRUCTIONS_SHEET_NAME)) {
+    createInstructionsSheet();
+  }
+}
+
+// Builds (or refreshes) the "Instructions" tab — the in-sheet setup/usage guide every friend
+// sees as soon as they open their copy, since it's a normal tab and travels with File > Make a
+// Copy like any other. Unlike the Config seed functions, this ALWAYS overwrites — it's Rick's
+// own authored content, not something a friend's data could conflict with, and re-running it
+// (after editing the source below) is how doc updates get refreshed on the master template
+// before sharing further. Call directly any time the wording needs updating.
+const INSTRUCTIONS_SHEET_NAME = "Instructions";
+
+function createInstructionsSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(INSTRUCTIONS_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(INSTRUCTIONS_SHEET_NAME, 0);
+  } else {
+    sheet.clear();
+  }
+
+  const sections = [
+    { type: "title", text: "Job Maverick — Setup & Usage" },
+    { type: "body", text: "Everything below happens in your browser — Google Sheets and the Apps Script editor (which opens inside Google, not a separate program). No installs, no command line." },
+    { type: "spacer" },
+    { type: "heading", text: "What you'll need" },
+    { type: "body", text: "• A Google account with Google Sheets.\n• A Claude API key from console.anthropic.com (Plans & Billing > API keys). This is pay-as-you-go — typical job-search usage costs a few dollars a month, not a subscription.\n• Your resume as a Google Doc (not a PDF/Word file — if you have a PDF, open it in Google Docs first: File > Open > Upload, or paste the text into a new Doc)." },
+    { type: "spacer" },
+    { type: "heading", text: "1. Get your own copy" },
+    { type: "body", text: "If you're viewing someone else's template rather than your own copy, use File > Make a copy first. This gives you your own independent spreadsheet and code — nothing you do here affects the original or anyone else's copy." },
+    { type: "spacer" },
+    { type: "heading", text: "2. Deploy the web app (one-time, needed for job capture)" },
+    { type: "body", text: "1. Extensions > Apps Script.\n2. Deploy (top right) > New deployment.\n3. Click the gear icon next to \"Select type\" > Web app.\n4. Set \"Execute as\" to Me, and \"Who has access\" to Anyone.\n5. Click Deploy. The first time, Google will ask you to authorize the script — click through the permission screens (a \"Google hasn't verified this app\" warning is expected for a personal script you just created yourself, not a real security warning; click Advanced > Go to [project name] (unsafe)).\n6. You don't need to copy the deployment URL shown here — the Setup Wizard fetches it automatically." },
+    { type: "spacer" },
+    { type: "heading", text: "3. Run the Setup Wizard" },
+    { type: "body", text: "Job Assistant > Setup Wizard. Fill in personal info, your resume/docs links, target role, background, and work preferences, then your Claude API key. Nothing needs to be perfect on the first pass — every field is a normal Config cell you can edit later directly in the Config tab. Click Save Setup." },
+    { type: "spacer" },
+    { type: "heading", text: "4. Install your bookmarklet" },
+    { type: "body", text: "Job Assistant > Get Bookmarklet. Drag the blue button into your browser's bookmarks bar — that's your job-capture button. Click it on any job posting page (LinkedIn, a company careers page, etc.) and the description gets sent to your sheet automatically, scored within about 30 seconds.\nIf dragging doesn't work in your browser, the same dialog gives you the code as text — create a new bookmark manually (right-click your bookmarks bar > Add page) and paste it as the URL." },
+    { type: "spacer" },
+    { type: "heading", text: "5. Turn on the email monitor (optional but recommended)" },
+    { type: "body", text: "This checks your inbox for application responses and updates your tracker automatically. In Extensions > Apps Script, use the function dropdown near the top toolbar to run, one at a time: installEmailMonitorTrigger, installExtendedEmailCheckTrigger, and installNewModelCheckTrigger. For each job you apply to, add an Email Domain (e.g. greenhouse.io or the company's own domain) to that row so the monitor knows what to search for." },
+    { type: "spacer" },
+    { type: "heading", text: "Using the tracker day to day" },
+    { type: "body", text: "• Click your bookmarklet on job postings you find.\n• Check the Jobs tab — new rows appear scored (Fit Score, ATS Score, Recommendation) within about 30 seconds of capture.\n• Use the Job Assistant menu for everything else: generating tailored resumes/cover letters, interview prep, sorting, checking email responses.\n• The Config tab is your scoring rulebook — edit any row any time to change how Claude scores or writes for you. Add a new row with a short label and a plain-English instruction to add your own rule; it's picked up automatically on the next analysis." },
+    { type: "spacer" },
+    { type: "heading", text: "Have a question? Just ask." },
+    { type: "body", text: "Job Assistant > Open Claude Chat opens a chat sidebar right in this sheet — ask it anything about how the tracker works, why a job scored the way it did, or how to change a Config rule. It's the fastest way to get unstuck, any time." },
+    { type: "spacer" },
+    { type: "heading", text: "If something breaks" },
+    { type: "body", text: "Check Extensions > Apps Script > Executions (left sidebar) for an error log of the most recent runs. You can also ask Job Assistant > Open Claude Chat, or reach out to whoever shared this template with you." }
+  ];
+
+  let row = 1;
+  sections.forEach(function(s) {
+    if (s.type === "spacer") { row++; return; }
+    const cell = sheet.getRange(row, 1);
+    cell.setValue(s.text).setWrap(true);
+    if (s.type === "title") {
+      cell.setFontSize(16).setFontWeight("bold");
+    } else if (s.type === "heading") {
+      cell.setFontSize(12).setFontWeight("bold").setFontColor("#1a73e8");
+    } else {
+      cell.setFontSize(11).setFontWeight("normal").setFontColor("#333333");
+    }
+    row++;
+  });
+
+  sheet.setColumnWidth(1, 700);
+  sheet.autoResizeRows(1, row - 1);
+  sheet.setFrozenRows(1);
+  ss.setActiveSheet(sheet);
+
+  SpreadsheetApp.getActiveSpreadsheet().toast("Instructions tab created/refreshed.", "Job Assistant", 8);
+}
+
+function viewInstructions() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(INSTRUCTIONS_SHEET_NAME);
+  if (sheet) {
+    ss.setActiveSheet(sheet);
+  } else {
+    createInstructionsSheet();
   }
 }
 
